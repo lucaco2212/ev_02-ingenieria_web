@@ -1,6 +1,7 @@
 <script setup>
 // [COMPUTED & REF] Importamos ref para el estado reactivo y computed para propiedades computadas
 import { ref, computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import ServicioCard from '../components/ServicioCard.vue'
 import { serviciosData } from '../services/serviciosData.js'
 
@@ -8,6 +9,29 @@ import { serviciosData } from '../services/serviciosData.js'
 // Nota: en la Etapa 8 este arreglo se reemplazará por una petición fetch()
 const servicios = ref(serviciosData)
 
+// =============================================================================
+// FLUJO DE COMUNICACIÓN COMPLETO: PADRE ↔ HIJO
+// 1. PADRE → PROPS → HIJO:
+//    ServiciosView (padre) posee la fuente de verdad del estado de favoritos (ref 'favoritos').
+//    Por cada elemento iterado, le pasa a ServicioCard (hijo) la prop :es-favorito="favoritos.includes(servicio.id)".
+// 2. HIJO → EMIT → PADRE:
+//    El componente hijo ServicioCard NO muta sus props (principio de flujo unidireccional de Vue).
+//    Al interactuar con el botón, el hijo emite un evento personalizado 'toggle-favorito' enviando el ID.
+// 3. PADRE (MANEJADOR DE EVENTO):
+//    El padre escucha el evento con @toggle-favorito="manejarToggleFavorito" y actualiza su ref local.
+//    Al mutar 'favoritos', Vue reactivamente recalcula las props enviadas hacia los componentes hijos.
+// =============================================================================
+const favoritos = ref([])
+
+const manejarToggleFavorito = (idServicio) => {
+  if (favoritos.value.includes(idServicio)) {
+    // Si ya existe en la lista, lo quitamos
+    favoritos.value = favoritos.value.filter((id) => id !== idServicio)
+  } else {
+    // Si no existe, lo agregamos
+    favoritos.value.push(idServicio)
+  }
+}
 
 // Variables reactivas vinculadas mediante v-model a los campos del formulario
 const busqueda = ref('')
@@ -42,10 +66,20 @@ const serviciosFiltrados = computed(() => {
 <template>
   <section class="servicios-container">
     <div class="servicios-header">
-      <h1>Catálogo de Servicios Profesionales</h1>
-      <p>
-        Encuentra especialistas verificados en Chillán, San Carlos y las 21 comunas de la Región de Ñuble.
-      </p>
+      <div class="header-texto">
+        <h1>Catálogo de Servicios Profesionales</h1>
+        <p>
+          Encuentra especialistas verificados en Chillán, San Carlos y las 21 comunas de la Región de Ñuble.
+        </p>
+      </div>
+
+      <!-- Resumen reactivo de favoritos seleccionados en la sesión actual -->
+      <div v-if="favoritos.length > 0" class="favoritos-alerta">
+        <span>Has marcado <strong>{{ favoritos.length }}</strong> servicio(s) como favorito(s).</span>
+        <RouterLink to="/favoritos" class="link-favoritos">
+          Ir a Favoritos &rarr;
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Barra de filtros y búsqueda -->
@@ -85,11 +119,17 @@ const serviciosFiltrados = computed(() => {
 
     <!-- [V-IF / V-ELSE]: Condicional según existan o no resultados en serviciosFiltrados -->
     <div v-if="serviciosFiltrados.length > 0" class="servicios-grid">
-      <!-- [V-FOR 2]: Renderizado iterativo de las tarjetas con la lista computada filtrada -->
+      <!-- 
+        [COMUNICACIÓN PADRE ↔ HIJO]:
+        - Padre → Hijo (Props): :servicio y :es-favorito
+        - Hijo → Padre (Emit): @toggle-favorito="manejarToggleFavorito"
+      -->
       <ServicioCard
         v-for="servicio in serviciosFiltrados"
         :key="servicio.id"
         :servicio="servicio"
+        :es-favorito="favoritos.includes(servicio.id)"
+        @toggle-favorito="manejarToggleFavorito"
       />
     </div>
 
@@ -113,6 +153,9 @@ const serviciosFiltrados = computed(() => {
   border-radius: var(--radius);
   padding: 1.5rem 2rem;
   box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .servicios-header h1 {
@@ -124,6 +167,30 @@ const serviciosFiltrados = computed(() => {
 .servicios-header p {
   color: var(--color-text-muted);
   font-size: 1.05rem;
+}
+
+.favoritos-alerta {
+  background-color: #ffe4e6;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.link-favoritos {
+  font-weight: 700;
+  color: #e11d48;
+  text-decoration: underline;
+}
+
+.link-favoritos:hover {
+  color: #be123c;
 }
 
 /* Panel de Filtros */
