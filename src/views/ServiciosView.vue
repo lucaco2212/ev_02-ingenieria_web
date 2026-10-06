@@ -1,27 +1,32 @@
 <script setup>
 // [COMPUTED & REF] Importamos ref para el estado reactivo y computed para propiedades computadas
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import ServicioCard from '../components/ServicioCard.vue'
 import { serviciosData } from '../services/serviciosData.js'
+import { obtenerFavoritos, guardarFavoritos } from '../services/favoritosStorage.js'
 
 // Arreglo reactivo centralizado de servicios profesionales en la Región de Ñuble
 // Nota: en la Etapa 8 este arreglo se reemplazará por una petición fetch()
 const servicios = ref(serviciosData)
 
 // =============================================================================
-// FLUJO DE COMUNICACIÓN COMPLETO: PADRE ↔ HIJO
-// 1. PADRE → PROPS → HIJO:
-//    ServiciosView (padre) posee la fuente de verdad del estado de favoritos (ref 'favoritos').
-//    Por cada elemento iterado, le pasa a ServicioCard (hijo) la prop :es-favorito="favoritos.includes(servicio.id)".
-// 2. HIJO → EMIT → PADRE:
-//    El componente hijo ServicioCard NO muta sus props (principio de flujo unidireccional de Vue).
-//    Al interactuar con el botón, el hijo emite un evento personalizado 'toggle-favorito' enviando el ID.
-// 3. PADRE (MANEJADOR DE EVENTO):
-//    El padre escucha el evento con @toggle-favorito="manejarToggleFavorito" y actualiza su ref local.
-//    Al mutar 'favoritos', Vue reactivamente recalcula las props enviadas hacia los componentes hijos.
+// FLUJO DE COMUNICACIÓN COMPLETO: PADRE ↔ HIJO Y PERSISTENCIA LOCAL
+// 1. Inicializamos favoritos desde localStorage con obtenerFavoritos().
+// 2. Mediante watch con { deep: true }, cualquier cambio en favoritos se guarda automáticamente.
+// 3. PADRE → PROPS → HIJO: le pasa a cada ServicioCard :es-favorito="favoritos.includes(servicio.id)".
+// 4. HIJO → EMIT → PADRE: ServicioCard emite @toggle-favorito con el id al hacer clic.
 // =============================================================================
-const favoritos = ref([])
+const favoritos = ref(obtenerFavoritos())
+
+// Observador reactivo para persistir los cambios en localStorage
+watch(
+  favoritos,
+  (nuevosFavoritos) => {
+    guardarFavoritos(nuevosFavoritos)
+  },
+  { deep: true }
+)
 
 const manejarToggleFavorito = (idServicio) => {
   if (favoritos.value.includes(idServicio)) {
@@ -32,6 +37,7 @@ const manejarToggleFavorito = (idServicio) => {
     favoritos.value.push(idServicio)
   }
 }
+
 
 // Variables reactivas vinculadas mediante v-model a los campos del formulario
 const busqueda = ref('')
