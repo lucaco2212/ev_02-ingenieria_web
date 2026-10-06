@@ -2,59 +2,12 @@
 // [COMPUTED & REF] Importamos ref para el estado reactivo y computed para propiedades computadas
 import { ref, computed } from 'vue'
 import ServicioCard from '../components/ServicioCard.vue'
+import { serviciosData } from '../services/serviciosData.js'
 
-// Arreglo reactivo temporal de servicios profesionales en la Región de Ñuble
+// Arreglo reactivo centralizado de servicios profesionales en la Región de Ñuble
 // Nota: en la Etapa 8 este arreglo se reemplazará por una petición fetch()
-const servicios = ref([
-  {
-    id: 1,
-    nombre: 'Asesoría Legal y Redacción de Contratos',
-    categoria: 'Legal',
-    descripcion: 'Atención presencial en Chillán y asesoría online para personas y empresas de la región.',
-    precio: 45000,
-    disponible: true,
-  },
-  {
-    id: 2,
-    nombre: 'Declaración de Renta y Asesoría Tributaria',
-    categoria: 'Contabilidad',
-    descripcion: 'Contador auditor con experiencia en pymes comerciales y agrícolas de San Carlos.',
-    precio: 35000,
-    disponible: true,
-  },
-  {
-    id: 3,
-    nombre: 'Diseño y Regularización de Planos',
-    categoria: 'Arquitectura',
-    descripcion: 'Arquitecto colegiado para loteos y regularizaciones municipales en Ñuble.',
-    precio: 85000,
-    disponible: false, // Servicio actualmente no disponible
-  },
-  {
-    id: 4,
-    nombre: 'Atención Psicológica Clínica para Adultos',
-    categoria: 'Salud',
-    descripcion: 'Psicoterapia presencial en Chillán con enfoque cognitivo-conductual.',
-    precio: 32000,
-    disponible: true,
-  },
-  {
-    id: 5,
-    nombre: 'Instalación y Certificación Eléctrica SEC',
-    categoria: 'Técnico',
-    descripcion: 'Técnico electricista certificado para viviendas particulares y locales en Chillán Viejo.',
-    precio: 50000,
-    disponible: false, // Servicio actualmente no disponible
-  },
-  {
-    id: 6,
-    nombre: 'Diseño de Sitios Web y Tiendas Online',
-    categoria: 'Tecnología',
-    descripcion: 'Desarrollo web moderno y adaptable a móviles para emprendimientos locales.',
-    precio: 95000,
-    disponible: true,
-  },
-])
+const servicios = ref(serviciosData)
+
 
 // Variables reactivas vinculadas mediante v-model a los campos del formulario
 const busqueda = ref('')
