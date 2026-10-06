@@ -65,30 +65,37 @@ a:hover {
   font-size: 1.35rem;
   font-weight: 700;
   color: #ffffff;
+  text-decoration: none;
+}
+
+.brand-title:hover {
+  color: #e0f2fe;
 }
 
 .main-nav {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .nav-link {
   color: #cbd5e1;
   font-weight: 500;
-  padding: 0.4rem 0.8rem;
+  padding: 0.45rem 0.9rem;
   border-radius: var(--radius);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  border-bottom: 2px solid transparent;
 }
 
 .nav-link:hover {
   color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
-/* Clase que Vue Router aplica automáticamente al enlace activo */
-.nav-link.router-link-active {
+/* Estilo para el enlace activo de navegación gestionado por Vue Router */
+.nav-link.router-link-exact-active {
   color: #ffffff;
   background-color: rgba(255, 255, 255, 0.22);
+  border-bottom: 2px solid #38bdf8;
   font-weight: 600;
 }
 
@@ -132,6 +139,7 @@ a:hover {
   cursor: pointer;
   transition: background-color 0.2s ease;
   margin-top: 1rem;
+  text-decoration: none;
 }
 
 .btn:hover {

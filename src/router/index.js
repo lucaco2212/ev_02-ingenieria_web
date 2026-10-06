@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// Importación de las vistas principales de la aplicación
+// Importación de las vistas para cada ruta
 import InicioView from '../views/InicioView.vue'
 import ServiciosView from '../views/ServiciosView.vue'
 import ServicioDetalleView from '../views/ServicioDetalleView.vue'
@@ -8,7 +8,7 @@ import FavoritosView from '../views/FavoritosView.vue'
 import ContactoView from '../views/ContactoView.vue'
 import NotFoundView from '../views/NotFoundView.vue'
 
-// Definición de las rutas del sistema
+// Definición de las rutas del sistema con sus nombres correspondientes
 const routes = [
   {
     path: '/',
@@ -24,6 +24,7 @@ const routes = [
     path: '/servicios/:id',
     name: 'servicio-detalle',
     component: ServicioDetalleView,
+    // props: true permite pasar el parámetro :id directamente como prop al componente
     props: true,
   },
   {
@@ -37,13 +38,15 @@ const routes = [
     component: ContactoView,
   },
   {
-    // Captura cualquier ruta que no coincida con las anteriores (Error 404)
+    // Ruta comodín (catch-all) para páginas no encontradas (error 404)
+    // :pathMatch(.*)* captura cualquier segmento de URL no coincidente
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: NotFoundView,
   },
 ]
 
+// Creación de la instancia del router usando el historial HTML5 (createWebHistory)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,

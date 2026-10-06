@@ -1,13 +1,18 @@
 <script setup>
+// En Vue 3 con vue-router importamos RouterLink y RouterView para la navegación SPA
 import { RouterLink, RouterView } from 'vue-router'
 </script>
 
 <template>
+  <!-- Encabezado con menú de navegación principal -->
   <header class="app-header">
     <div class="header-container">
-      <div class="brand-title">
+      <!-- El logotipo o título también redirige al inicio usando RouterLink sin recargar la página -->
+      <RouterLink to="/" class="brand-title">
         Servicios Ñuble
-      </div>
+      </RouterLink>
+      
+      <!-- Menú principal usando exclusivamente RouterLink en lugar de etiquetas <a> -->
       <nav class="main-nav">
         <RouterLink to="/" class="nav-link">Inicio</RouterLink>
         <RouterLink to="/servicios" class="nav-link">Servicios</RouterLink>
@@ -17,12 +22,12 @@ import { RouterLink, RouterView } from 'vue-router'
     </div>
   </header>
 
+  <!-- Contenedor principal donde se monta la vista activa según la ruta -->
   <main class="app-main">
-    <!-- RouterView renderiza el componente asociado a la ruta actual -->
     <RouterView />
   </main>
 </template>
 
 <style scoped>
-/* Los estilos estructurales generales se gestionan desde main.css */
+/* Los estilos generales del encabezado y la navegación se encuentran en main.css */
 </style>
