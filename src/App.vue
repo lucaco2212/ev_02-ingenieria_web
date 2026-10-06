@@ -1,11 +1,28 @@
-<script setup></script>
+<script setup>
+import { RouterLink, RouterView } from 'vue-router'
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-title">
+        Servicios Ñuble
+      </div>
+      <nav class="main-nav">
+        <RouterLink to="/" class="nav-link">Inicio</RouterLink>
+        <RouterLink to="/servicios" class="nav-link">Servicios</RouterLink>
+        <RouterLink to="/favoritos" class="nav-link">Favoritos</RouterLink>
+        <RouterLink to="/contacto" class="nav-link">Contacto</RouterLink>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app-main">
+    <!-- RouterView renderiza el componente asociado a la ruta actual -->
+    <RouterView />
+  </main>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Los estilos estructurales generales se gestionan desde main.css */
+</style>
