@@ -1,20 +1,49 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
-import { serviciosData } from '../services/serviciosData.js'
+import { obtenerServicios } from '../services/serviciosService.js'
 
-// useRoute() permite acceder a la información de la ruta actual, incluidos sus parámetros
+// =============================================================================
+// ARQUITECTURA DE DATOS: CARGA ASÍNCRONA EN onMounted
+// Decisión pedagógica: La vista de detalle consulta los servicios a través de
+// obtenerServicios() en onMounted(). De este modo, si un usuario ingresa
+// directamente por URL (ej: /servicios/2) o recarga la página, los datos se
+// solicitan y procesan de forma autónoma con sus propios estados de carga y error.
+// =============================================================================
+
 const route = useRoute()
 
-// Computed que busca el servicio correspondiente según el parámetro :id de la URL.
-// IMPORTANTE: route.params.id llega como String desde la URL, por lo que convertimos
-// con Number(route.params.id) para comparar de forma estricta contra el id numérico del objeto.
-const servicio = computed(() => {
-  const idNumerico = Number(route.params.id)
-  return serviciosData.find((item) => item.id === idNumerico)
+// Tres estados reactivos para la petición asíncrona
+const servicios = ref([])
+const cargando = ref(true)
+const error = ref(null)
+
+// Función para obtener los datos desde el servicio
+const cargarDatos = async () => {
+  cargando.value = true
+  error.value = null
+
+  try {
+    servicios.value = await obtenerServicios()
+  } catch (err) {
+    error.value = 'No se pudieron cargar los servicios. Intenta nuevamente.'
+  } finally {
+    cargando.value = false
+  }
+}
+
+// Invocamos la carga al montar el componente
+onMounted(() => {
+  cargarDatos()
 })
 
-// Función para formatear el precio en pesos chilenos (CLP)
+// Computed que busca el servicio correspondiente comparando el :id numéricamente
+const servicio = computed(() => {
+  const idNumerico = Number(route.params.id)
+  return servicios.value.find((item) => item.id === idNumerico)
+})
+
+// Función para formatear precio en CLP
 const formatearPrecio = (valor) => {
   return new Intl.NumberFormat('es-CL', {
     style: 'currency',
@@ -25,9 +54,23 @@ const formatearPrecio = (valor) => {
 
 <template>
   <div class="detalle-page">
-    <!-- Renderizado condicional: si el servicio existe con el id provisto -->
-    <section v-if="servicio" class="view-container detalle-card">
-      <!-- Encabezado con categoría y estado de disponibilidad -->
+    <!-- ESTADO 1: CARGANDO -->
+    <div v-if="cargando" class="view-container estado-cargando">
+      <div class="spinner"></div>
+      <p>Cargando servicios...</p>
+    </div>
+
+    <!-- ESTADO 2: ERROR CON BOTÓN REINTENTAR -->
+    <div v-else-if="error" class="view-container estado-error">
+      <h2>Ocurrió un inconveniente</h2>
+      <p class="error-mensaje">{{ error }}</p>
+      <button type="button" class="btn" @click="cargarDatos">
+        Reintentar
+      </button>
+    </div>
+
+    <!-- ESTADO 3: ÉXITO - SI EXISTE EL SERVICIO CON EL ID PROVISTO -->
+    <section v-else-if="servicio" class="view-container detalle-card">
       <div class="detalle-header">
         <span class="badge-categoria">{{ servicio.categoria }}</span>
         <span
@@ -44,22 +87,18 @@ const formatearPrecio = (valor) => {
         </span>
       </div>
 
-      <!-- Título principal con el nombre del servicio -->
       <h1 class="detalle-titulo">{{ servicio.nombre }}</h1>
 
-      <!-- Precio referencial -->
       <div class="detalle-precio-box">
         <span class="precio-label">Tarifa referencial:</span>
         <span class="precio-valor">{{ formatearPrecio(servicio.precio) }}</span>
       </div>
 
-      <!-- Descripción completa y detallada -->
       <div class="detalle-seccion">
         <h2>Descripción del Servicio</h2>
         <p class="detalle-descripcion">{{ servicio.descripcion }}</p>
       </div>
 
-      <!-- Barra de acciones y navegación -->
       <div class="detalle-acciones">
         <RouterLink to="/servicios" class="btn btn-secondary">
           &larr; Volver a servicios
@@ -67,7 +106,7 @@ const formatearPrecio = (valor) => {
       </div>
     </section>
 
-    <!-- Estado alternativo v-else: si el id no corresponde a ningún servicio existente -->
+    <!-- ESTADO ALTERNATIVO: EL ID NO CORRESPONDE A NINGÚN SERVICIO -->
     <section v-else class="view-container servicio-no-encontrado">
       <div class="alerta-error">
         <h1>Servicio no encontrado</h1>
@@ -191,7 +230,47 @@ const formatearPrecio = (valor) => {
   color: #0f172a;
 }
 
-/* Estado de error cuando el servicio no existe */
+/* Estado de error y carga */
+.estado-cargando,
+.estado-error {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+}
+
+.estado-cargando p {
+  font-size: 1.15rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.estado-error h2 {
+  color: var(--color-danger);
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-mensaje {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
+}
+
 .servicio-no-encontrado {
   text-align: center;
   padding: 3.5rem 1.5rem;

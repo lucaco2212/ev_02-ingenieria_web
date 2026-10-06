@@ -1,25 +1,47 @@
 <script setup>
-// [COMPUTED & REF] Importamos ref para el estado reactivo y computed para propiedades computadas
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import ServicioCard from '../components/ServicioCard.vue'
-import { serviciosData } from '../services/serviciosData.js'
+import { obtenerServicios } from '../services/serviciosService.js'
 import { obtenerFavoritos, guardarFavoritos } from '../services/favoritosStorage.js'
 
-// Arreglo reactivo centralizado de servicios profesionales en la Región de Ñuble
-// Nota: en la Etapa 8 este arreglo se reemplazará por una petición fetch()
-const servicios = ref(serviciosData)
+// =============================================================================
+// ARQUITECTURA DE DATOS: CARGA ASÍNCRONA EN onMounted
+// Decisión pedagógica: Cada vista gestiona su ciclo de carga asíncrona de manera
+// independiente invocando el servicio en onMounted(). Esto mantiene cada componente
+// autónomo, fácil de razonar y con control total sobre su propio estado de carga
+// y su botón de reintento ante fallos de red.
+// =============================================================================
+
+// Tres estados reactivos para la carga asíncrona
+const servicios = ref([])
+const cargando = ref(true)
+const error = ref(null)
+
+// Función asíncrona protegida con try / catch / finally para consultar los datos
+const cargarServicios = async () => {
+  cargando.value = true
+  error.value = null
+
+  try {
+    servicios.value = await obtenerServicios()
+  } catch (err) {
+    error.value = 'No se pudieron cargar los servicios. Intenta nuevamente.'
+  } finally {
+    cargando.value = false
+  }
+}
+
+// Invocamos la carga al montarse el componente
+onMounted(() => {
+  cargarServicios()
+})
 
 // =============================================================================
-// FLUJO DE COMUNICACIÓN COMPLETO: PADRE ↔ HIJO Y PERSISTENCIA LOCAL
-// 1. Inicializamos favoritos desde localStorage con obtenerFavoritos().
-// 2. Mediante watch con { deep: true }, cualquier cambio en favoritos se guarda automáticamente.
-// 3. PADRE → PROPS → HIJO: le pasa a cada ServicioCard :es-favorito="favoritos.includes(servicio.id)".
-// 4. HIJO → EMIT → PADRE: ServicioCard emite @toggle-favorito con el id al hacer clic.
+// GESTIÓN DE FAVORITOS PERSISTIDOS Y COMUNICACIÓN PADRE ↔ HIJO
 // =============================================================================
 const favoritos = ref(obtenerFavoritos())
 
-// Observador reactivo para persistir los cambios en localStorage
 watch(
   favoritos,
   (nuevosFavoritos) => {
@@ -30,40 +52,32 @@ watch(
 
 const manejarToggleFavorito = (idServicio) => {
   if (favoritos.value.includes(idServicio)) {
-    // Si ya existe en la lista, lo quitamos
     favoritos.value = favoritos.value.filter((id) => id !== idServicio)
   } else {
-    // Si no existe, lo agregamos
     favoritos.value.push(idServicio)
   }
 }
 
-
-// Variables reactivas vinculadas mediante v-model a los campos del formulario
+// Variables reactivas para búsqueda y filtros con v-model
 const busqueda = ref('')
 const categoriaSeleccionada = ref('Todas')
 
-// [COMPUTED 1] Generación dinámica de la lista única de categorías desde los datos disponibles
+// [COMPUTED 1]: Extrae las categorías únicas disponibles
 const categorias = computed(() => {
-  // Extraemos las categorías únicas usando Set a partir del arreglo de servicios
   const listaCategorias = servicios.value.map((s) => s.categoria)
   return [...new Set(listaCategorias)]
 })
 
-// [COMPUTED 2] Filtro combinado de búsqueda por nombre y categoría
+// [COMPUTED 2]: Filtra los servicios según nombre y categoría
 const serviciosFiltrados = computed(() => {
   const termino = busqueda.value.toLowerCase().trim()
 
   return servicios.value.filter((servicio) => {
-    // 1. Filtro por nombre (insensible a mayúsculas/minúsculas)
     const coincideNombre = servicio.nombre.toLowerCase().includes(termino)
-
-    // 2. Filtro por categoría ('Todas' o coincidencia exacta con la categoría seleccionada)
     const coincideCategoria =
       categoriaSeleccionada.value === 'Todas' ||
       servicio.categoria === categoriaSeleccionada.value
 
-    // Deben cumplirse ambos filtros simultáneamente
     return coincideNombre && coincideCategoria
   })
 })
@@ -79,7 +93,7 @@ const serviciosFiltrados = computed(() => {
         </p>
       </div>
 
-      <!-- Resumen reactivo de favoritos seleccionados en la sesión actual -->
+      <!-- Alerta informativa de favoritos seleccionados -->
       <div v-if="favoritos.length > 0" class="favoritos-alerta">
         <span>Has marcado <strong>{{ favoritos.length }}</strong> servicio(s) como favorito(s).</span>
         <RouterLink to="/favoritos" class="link-favoritos">
@@ -88,60 +102,71 @@ const serviciosFiltrados = computed(() => {
       </div>
     </div>
 
-    <!-- Barra de filtros y búsqueda -->
-    <div class="filtros-container">
-      <!-- [V-MODEL 1]: Enlace bidireccional entre el input de texto y la variable ref 'busqueda' -->
-      <div class="filtro-campo">
-        <label for="buscar-nombre" class="filtro-label">Buscar por nombre:</label>
-        <input
-          id="buscar-nombre"
-          v-model="busqueda"
-          type="text"
-          placeholder="Ej: abogado, contador, web..."
-          class="filtro-input"
+    <!-- ESTADO 1: CARGANDO -->
+    <div v-if="cargando" class="estado-cargando">
+      <div class="spinner"></div>
+      <p>Cargando servicios...</p>
+    </div>
+
+    <!-- ESTADO 2: ERROR CON BOTÓN REINTENTAR -->
+    <div v-else-if="error" class="estado-error">
+      <h2>Ocurrió un inconveniente</h2>
+      <p class="error-mensaje">{{ error }}</p>
+      <button type="button" class="btn" @click="cargarServicios">
+        Reintentar
+      </button>
+    </div>
+
+    <!-- ESTADO 3: ÉXITO - MUESTRA CATÁLOGO Y FILTROS -->
+    <div v-else class="contenido-catalogo">
+      <!-- Barra de filtros y búsqueda -->
+      <div class="filtros-container">
+        <!-- [V-MODEL 1]: Búsqueda por texto -->
+        <div class="filtro-campo">
+          <label for="buscar-nombre" class="filtro-label">Buscar por nombre:</label>
+          <input
+            id="buscar-nombre"
+            v-model="busqueda"
+            type="text"
+            placeholder="Ej: abogado, contador, web..."
+            class="filtro-input"
+          />
+        </div>
+
+        <!-- [V-MODEL 2]: Filtro por categoría -->
+        <div class="filtro-campo">
+          <label for="filtrar-categoria" class="filtro-label">Filtrar por categoría:</label>
+          <select
+            id="filtrar-categoria"
+            v-model="categoriaSeleccionada"
+            class="filtro-select"
+          >
+            <option value="Todas">Todas</option>
+            <option
+              v-for="cat in categorias"
+              :key="cat"
+              :value="cat"
+            >
+              {{ cat }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- [V-IF / V-ELSE]: Grilla de resultados vs Mensaje de búsqueda sin coincidencias -->
+      <div v-if="serviciosFiltrados.length > 0" class="servicios-grid">
+        <ServicioCard
+          v-for="servicio in serviciosFiltrados"
+          :key="servicio.id"
+          :servicio="servicio"
+          :es-favorito="favoritos.includes(servicio.id)"
+          @toggle-favorito="manejarToggleFavorito"
         />
       </div>
 
-      <!-- [V-MODEL 2]: Enlace bidireccional entre el select y la variable ref 'categoriaSeleccionada' -->
-      <div class="filtro-campo">
-        <label for="filtrar-categoria" class="filtro-label">Filtrar por categoría:</label>
-        <select
-          id="filtrar-categoria"
-          v-model="categoriaSeleccionada"
-          class="filtro-select"
-        >
-          <option value="Todas">Todas</option>
-          <!-- [V-FOR 1]: Renderizado de las opciones de categoría calculadas dinámicamente -->
-          <option
-            v-for="cat in categorias"
-            :key="cat"
-            :value="cat"
-          >
-            {{ cat }}
-          </option>
-        </select>
+      <div v-else class="sin-resultados">
+        <p>No se encontraron servicios para los criterios seleccionados.</p>
       </div>
-    </div>
-
-    <!-- [V-IF / V-ELSE]: Condicional según existan o no resultados en serviciosFiltrados -->
-    <div v-if="serviciosFiltrados.length > 0" class="servicios-grid">
-      <!-- 
-        [COMUNICACIÓN PADRE ↔ HIJO]:
-        - Padre → Hijo (Props): :servicio y :es-favorito
-        - Hijo → Padre (Emit): @toggle-favorito="manejarToggleFavorito"
-      -->
-      <ServicioCard
-        v-for="servicio in serviciosFiltrados"
-        :key="servicio.id"
-        :servicio="servicio"
-        :es-favorito="favoritos.includes(servicio.id)"
-        @toggle-favorito="manejarToggleFavorito"
-      />
-    </div>
-
-    <!-- Mensaje cuando no hay resultados que coincidan con la búsqueda o filtro -->
-    <div v-else class="sin-resultados">
-      <p>No se encontraron servicios para los criterios seleccionados.</p>
     </div>
   </section>
 </template>
@@ -199,6 +224,12 @@ const serviciosFiltrados = computed(() => {
   color: #be123c;
 }
 
+.contenido-catalogo {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 /* Panel de Filtros */
 .filtros-container {
   background-color: var(--color-card-bg);
@@ -245,14 +276,14 @@ const serviciosFiltrados = computed(() => {
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
 }
 
-/* Grilla de resultados */
+/* Grilla de tarjetas */
 .servicios-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
 
-/* Estado vacío cuando no hay resultados */
+/* Estado vacío de búsqueda */
 .sin-resultados {
   background-color: var(--color-card-bg);
   border: 1px dashed var(--color-border);
@@ -261,5 +292,50 @@ const serviciosFiltrados = computed(() => {
   text-align: center;
   color: var(--color-text-muted);
   font-size: 1.1rem;
+}
+
+/* Estilos de los estados de carga y error */
+.estado-cargando,
+.estado-error {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.estado-cargando p {
+  font-size: 1.15rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.estado-error h2 {
+  color: var(--color-danger);
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-mensaje {
+  color: var(--color-text-muted);
+  font-size: 1.05rem;
+  margin-bottom: 1rem;
 }
 </style>
