@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue'
+// [COMPUTED & REF] Importamos ref para el estado reactivo y computed para propiedades computadas
+import { ref, computed } from 'vue'
 import ServicioCard from '../components/ServicioCard.vue'
 
-// Arreglo temporal de servicios profesionales en la Región de Ñuble
+// Arreglo reactivo temporal de servicios profesionales en la Región de Ñuble
 // Nota: en la Etapa 8 este arreglo se reemplazará por una petición fetch()
 const servicios = ref([
   {
@@ -54,6 +55,35 @@ const servicios = ref([
     disponible: true,
   },
 ])
+
+// Variables reactivas vinculadas mediante v-model a los campos del formulario
+const busqueda = ref('')
+const categoriaSeleccionada = ref('Todas')
+
+// [COMPUTED 1] Generación dinámica de la lista única de categorías desde los datos disponibles
+const categorias = computed(() => {
+  // Extraemos las categorías únicas usando Set a partir del arreglo de servicios
+  const listaCategorias = servicios.value.map((s) => s.categoria)
+  return [...new Set(listaCategorias)]
+})
+
+// [COMPUTED 2] Filtro combinado de búsqueda por nombre y categoría
+const serviciosFiltrados = computed(() => {
+  const termino = busqueda.value.toLowerCase().trim()
+
+  return servicios.value.filter((servicio) => {
+    // 1. Filtro por nombre (insensible a mayúsculas/minúsculas)
+    const coincideNombre = servicio.nombre.toLowerCase().includes(termino)
+
+    // 2. Filtro por categoría ('Todas' o coincidencia exacta con la categoría seleccionada)
+    const coincideCategoria =
+      categoriaSeleccionada.value === 'Todas' ||
+      servicio.categoria === categoriaSeleccionada.value
+
+    // Deben cumplirse ambos filtros simultáneamente
+    return coincideNombre && coincideCategoria
+  })
+})
 </script>
 
 <template>
@@ -65,13 +95,54 @@ const servicios = ref([
       </p>
     </div>
 
-    <!-- Renderizado dinámico de tarjetas utilizando v-for con clave única :key -->
-    <div class="servicios-grid">
+    <!-- Barra de filtros y búsqueda -->
+    <div class="filtros-container">
+      <!-- [V-MODEL 1]: Enlace bidireccional entre el input de texto y la variable ref 'busqueda' -->
+      <div class="filtro-campo">
+        <label for="buscar-nombre" class="filtro-label">Buscar por nombre:</label>
+        <input
+          id="buscar-nombre"
+          v-model="busqueda"
+          type="text"
+          placeholder="Ej: abogado, contador, web..."
+          class="filtro-input"
+        />
+      </div>
+
+      <!-- [V-MODEL 2]: Enlace bidireccional entre el select y la variable ref 'categoriaSeleccionada' -->
+      <div class="filtro-campo">
+        <label for="filtrar-categoria" class="filtro-label">Filtrar por categoría:</label>
+        <select
+          id="filtrar-categoria"
+          v-model="categoriaSeleccionada"
+          class="filtro-select"
+        >
+          <option value="Todas">Todas</option>
+          <!-- [V-FOR 1]: Renderizado de las opciones de categoría calculadas dinámicamente -->
+          <option
+            v-for="cat in categorias"
+            :key="cat"
+            :value="cat"
+          >
+            {{ cat }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- [V-IF / V-ELSE]: Condicional según existan o no resultados en serviciosFiltrados -->
+    <div v-if="serviciosFiltrados.length > 0" class="servicios-grid">
+      <!-- [V-FOR 2]: Renderizado iterativo de las tarjetas con la lista computada filtrada -->
       <ServicioCard
-        v-for="servicio in servicios"
+        v-for="servicio in serviciosFiltrados"
         :key="servicio.id"
         :servicio="servicio"
       />
+    </div>
+
+    <!-- Mensaje cuando no hay resultados que coincidan con la búsqueda o filtro -->
+    <div v-else class="sin-resultados">
+      <p>No se encontraron servicios para los criterios seleccionados.</p>
     </div>
   </section>
 </template>
@@ -102,10 +173,67 @@ const servicios = ref([
   font-size: 1.05rem;
 }
 
-/* Grilla responsive para las tarjetas de servicios */
+/* Panel de Filtros */
+.filtros-container {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.filtro-campo {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filtro-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.filtro-input,
+.filtro-select {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--color-text);
+  background-color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filtro-input:focus,
+.filtro-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+/* Grilla de resultados */
 .servicios-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
+}
+
+/* Estado vacío cuando no hay resultados */
+.sin-resultados {
+  background-color: var(--color-card-bg);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
 }
 </style>
