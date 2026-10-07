@@ -338,4 +338,23 @@ const serviciosFiltrados = computed(() => {
   font-size: 1.05rem;
   margin-bottom: 1rem;
 }
+
+@media (max-width: 640px) {
+  .servicios-header {
+    padding: 1.25rem 1rem;
+  }
+
+  .filtros-container {
+    padding: 1rem;
+  }
+
+  .filtro-campo {
+    min-width: 100%;
+  }
+
+  .servicios-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
 </style>

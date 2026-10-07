@@ -210,4 +210,15 @@ const eliminarFavorito = (idServicio) => {
   font-size: 1.05rem;
   margin-bottom: 1rem;
 }
+
+@media (max-width: 640px) {
+  .favoritos-header {
+    padding: 1.25rem 1rem;
+  }
+
+  .servicios-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
 </style>

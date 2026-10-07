@@ -208,21 +208,32 @@ const formatearPrecio = (valor) => {
   color: #e11d48;
 }
 
+.btn-favorito:active {
+  transform: scale(0.98);
+}
+
 .btn-detalle {
   display: block;
   text-align: center;
   background-color: var(--color-primary);
   color: #ffffff;
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-detalle:hover {
   background-color: var(--color-primary-hover);
   color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(30, 58, 138, 0.2);
+}
+
+.btn-detalle:active {
+  transform: translateY(0);
 }
 </style>

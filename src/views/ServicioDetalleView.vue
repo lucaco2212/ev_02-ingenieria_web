@@ -103,6 +103,9 @@ const formatearPrecio = (valor) => {
         <RouterLink to="/servicios" class="btn btn-secondary">
           &larr; Volver a servicios
         </RouterLink>
+        <RouterLink to="/contacto" class="btn">
+          Contactar o cotizar &rarr;
+        </RouterLink>
       </div>
     </section>
 
@@ -213,16 +216,20 @@ const formatearPrecio = (valor) => {
 }
 
 .detalle-acciones {
-  padding-top: 1rem;
+  padding-top: 1.25rem;
   border-top: 1px solid var(--color-border);
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
+}
+
+.detalle-acciones .btn {
+  margin-top: 0;
 }
 
 .btn-secondary {
   background-color: #e2e8f0;
   color: #1e293b;
-  margin-top: 0;
 }
 
 .btn-secondary:hover {
